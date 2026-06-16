@@ -11,6 +11,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v4.0.0 | [`v4.0.0`](https://github.com/chainguard-actions/DaanV2-Markdown-Action-Create-Indexes/tree/v4.0.0) | [`5555257`](https://github.com/DaanV2/Markdown-Action-Create-Indexes/commit/55552578516b52f20c30ef3c6cac1046843731ab) |
 | v5.0.0 | [`v5.0.0`](https://github.com/chainguard-actions/DaanV2-Markdown-Action-Create-Indexes/tree/v5.0.0) | [`8dce7da`](https://github.com/DaanV2/Markdown-Action-Create-Indexes/commit/8dce7da93d33a84d22f99e078a19f0bae1ccb456) |
 | v5.0.2 | [`v5.0.2`](https://github.com/chainguard-actions/DaanV2-Markdown-Action-Create-Indexes/tree/v5.0.2) | [`bdb6c81`](https://github.com/DaanV2/Markdown-Action-Create-Indexes/commit/bdb6c814480e13ae42d998ba45eb1f102ea22885) |
+| v5.1.0 | [`v5.1.0`](https://github.com/chainguard-actions/DaanV2-Markdown-Action-Create-Indexes/tree/v5.1.0) | [`5bad54d`](https://github.com/DaanV2/Markdown-Action-Create-Indexes/commit/5bad54da951589eae8f940d253707e0093c401b8) |
 
 ## Privacy
 
