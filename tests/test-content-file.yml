@@ -1,0 +1,51 @@
+name: Test content file inclusion
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder with content file
+        run: |
+          mkdir -p /tmp/wiki-content/docs
+          echo "# Welcome to the Wiki" > /tmp/wiki-content/docs/.content.md
+          echo "This is the introduction text for the index." >> /tmp/wiki-content/docs/.content.md
+          echo "# Page Alpha" > /tmp/wiki-content/docs/page-alpha.md
+          echo "# Page Beta" > /tmp/wiki-content/docs/page-beta.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/wiki-content/docs
+
+      - name: Show generated index.md
+        run: |
+          echo "--- index.md contents ---"
+          cat /tmp/wiki-content/docs/index.md
+          echo "--- end ---"
+
+      - name: Assert index.md was created
+        run: |
+          if [ ! -f "/tmp/wiki-content/docs/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert content from .content.md is included
+        run: |
+          if ! grep -q "Welcome to the Wiki" /tmp/wiki-content/docs/index.md; then
+            echo "FAIL: content from .content.md should be included in index.md"
+            exit 1
+          fi
+          echo "PASS: .content.md content is included in index.md"
+
+      - name: Assert page links are present
+        run: |
+          if ! grep -q "page-alpha" /tmp/wiki-content/docs/index.md; then
+            echo "FAIL: page-alpha.md should be referenced in index.md"
+            exit 1
+          fi
+          echo "PASS: page links are present in index.md"

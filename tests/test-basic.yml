@@ -1,0 +1,39 @@
+name: Test basic usage - create index with defaults
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/wiki/docs
+          echo "# Hello World" > /tmp/wiki/docs/hello.md
+          echo "# Another Page" > /tmp/wiki/docs/another.md
+          echo "# Sub Page" > /tmp/wiki/docs/sub.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/wiki/docs
+
+      - name: Assert index.md was created
+        run: |
+          if [ ! -f "/tmp/wiki/docs/index.md" ]; then
+            echo "FAIL: index.md was not created in /tmp/wiki/docs"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert index.md contains links to markdown files
+        run: |
+          echo "--- index.md contents ---"
+          cat /tmp/wiki/docs/index.md
+          echo "--- end ---"
+          if ! grep -q "hello" /tmp/wiki/docs/index.md; then
+            echo "FAIL: index.md does not reference hello.md"
+            exit 1
+          fi
+          echo "PASS: index.md contains expected links"
