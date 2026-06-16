@@ -1,0 +1,54 @@
+name: Test exclude pattern
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki-exclude
+          echo "# Public Page" > /tmp/test-wiki-exclude/public-page.md
+          echo "# Another Public" > /tmp/test-wiki-exclude/another-public.md
+          echo "# Draft Page" > /tmp/test-wiki-exclude/draft-page.md
+          echo "# Draft Two" > /tmp/test-wiki-exclude/draft-two.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki-exclude
+          filename: index.md
+          exclude: "draft"
+
+      - name: Assert index file was created
+        run: |
+          echo "Checking for index.md in /tmp/test-wiki-exclude"
+          if [ ! -f "/tmp/test-wiki-exclude/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert excluded files are not in index
+        run: |
+          echo "Contents of index.md:"
+          cat /tmp/test-wiki-exclude/index.md
+          if grep -q "draft" /tmp/test-wiki-exclude/index.md; then
+            echo "FAIL: index.md contains excluded 'draft' files"
+            exit 1
+          fi
+          echo "PASS: draft files are excluded from index"
+
+      - name: Assert non-excluded files are in index
+        run: |
+          if ! grep -q "public-page" /tmp/test-wiki-exclude/index.md; then
+            echo "FAIL: index.md does not reference public-page.md"
+            exit 1
+          fi
+          if ! grep -q "another-public" /tmp/test-wiki-exclude/index.md; then
+            echo "FAIL: index.md does not reference another-public.md"
+            exit 1
+          fi
+          echo "PASS: public files are included in index"

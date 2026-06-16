@@ -1,0 +1,51 @@
+name: Test custom filename
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki-custom
+          echo "# Alpha" > /tmp/test-wiki-custom/alpha.md
+          echo "# Beta" > /tmp/test-wiki-custom/beta.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki-custom
+          filename: README.md
+
+      - name: Assert custom filename index was created
+        run: |
+          echo "Checking for README.md in /tmp/test-wiki-custom"
+          if [ ! -f "/tmp/test-wiki-custom/README.md" ]; then
+            echo "FAIL: README.md was not created"
+            exit 1
+          fi
+          echo "PASS: README.md exists"
+
+      - name: Assert default index.md was NOT created
+        run: |
+          if [ -f "/tmp/test-wiki-custom/index.md" ]; then
+            echo "FAIL: index.md should not have been created when filename=README.md"
+            exit 1
+          fi
+          echo "PASS: index.md was not created (correct)"
+
+      - name: Assert custom index contains links to markdown files
+        run: |
+          echo "Contents of README.md:"
+          cat /tmp/test-wiki-custom/README.md
+          if ! grep -q "alpha" /tmp/test-wiki-custom/README.md; then
+            echo "FAIL: README.md does not reference alpha.md"
+            exit 1
+          fi
+          if ! grep -q "beta" /tmp/test-wiki-custom/README.md; then
+            echo "FAIL: README.md does not reference beta.md"
+            exit 1
+          fi
+          echo "PASS: README.md contains links to markdown files"

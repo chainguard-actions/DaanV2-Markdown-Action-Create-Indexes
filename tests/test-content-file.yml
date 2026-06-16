@@ -1,0 +1,53 @@
+name: Test content file inclusion
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder with content file
+        run: |
+          mkdir -p /tmp/test-wiki-content
+          echo "# Page A" > /tmp/test-wiki-content/page-a.md
+          echo "# Page B" > /tmp/test-wiki-content/page-b.md
+          echo "This is the custom header content for the index." > /tmp/test-wiki-content/.content.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki-content
+          filename: index.md
+          content: .content.md
+
+      - name: Assert index file was created
+        run: |
+          echo "Checking for index.md in /tmp/test-wiki-content"
+          if [ ! -f "/tmp/test-wiki-content/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert content file text is included in index
+        run: |
+          echo "Contents of index.md:"
+          cat /tmp/test-wiki-content/index.md
+          if ! grep -q "custom header content" /tmp/test-wiki-content/index.md; then
+            echo "FAIL: index.md does not contain the .content.md text"
+            exit 1
+          fi
+          echo "PASS: content file text is included in index"
+
+      - name: Assert markdown pages are linked in index
+        run: |
+          if ! grep -q "page-a" /tmp/test-wiki-content/index.md; then
+            echo "FAIL: index.md does not reference page-a.md"
+            exit 1
+          fi
+          if ! grep -q "page-b" /tmp/test-wiki-content/index.md; then
+            echo "FAIL: index.md does not reference page-b.md"
+            exit 1
+          fi
+          echo "PASS: markdown pages are linked in index"
