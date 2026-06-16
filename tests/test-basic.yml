@@ -1,0 +1,51 @@
+name: Test basic usage - create index.md from markdown files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki/docs
+          echo "# Hello" > /tmp/test-wiki/docs/hello.md
+          echo "# World" > /tmp/test-wiki/docs/world.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki
+
+      - name: Assert index.md was created in docs subfolder
+        run: |
+          if [ ! -f "/tmp/test-wiki/docs/index.md" ]; then
+            echo "FAIL: expected /tmp/test-wiki/docs/index.md to be created"
+            exit 1
+          fi
+          echo "PASS: index.md was created"
+
+      - name: Assert index.md contains document links
+        run: |
+          CONTENT=$(cat /tmp/test-wiki/docs/index.md)
+          echo "Content of index.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "hello"; then
+            echo "FAIL: expected index.md to contain a link to hello.md"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "world"; then
+            echo "FAIL: expected index.md to contain a link to world.md"
+            exit 1
+          fi
+          echo "PASS: index.md contains expected document links"
+
+      - name: Assert index.md contains Documents section
+        run: |
+          CONTENT=$(cat /tmp/test-wiki/docs/index.md)
+          if ! echo "$CONTENT" | grep -q "## Documents"; then
+            echo "FAIL: expected index.md to contain '## Documents' section"
+            exit 1
+          fi
+          echo "PASS: index.md contains Documents section"

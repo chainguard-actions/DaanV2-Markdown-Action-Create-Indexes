@@ -1,0 +1,51 @@
+name: Test custom filename input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-custom/articles
+          echo "# Article One" > /tmp/test-custom/articles/article-one.md
+          echo "# Article Two" > /tmp/test-custom/articles/article-two.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-custom
+          filename: README.md
+
+      - name: Assert README.md was created (not index.md)
+        run: |
+          if [ ! -f "/tmp/test-custom/articles/README.md" ]; then
+            echo "FAIL: expected /tmp/test-custom/articles/README.md to be created"
+            exit 1
+          fi
+          echo "PASS: README.md was created with custom filename"
+
+      - name: Assert default index.md was NOT created
+        run: |
+          if [ -f "/tmp/test-custom/articles/index.md" ]; then
+            echo "FAIL: index.md should not have been created when filename=README.md"
+            exit 1
+          fi
+          echo "PASS: index.md was not created (correct)"
+
+      - name: Assert README.md contains expected content
+        run: |
+          CONTENT=$(cat /tmp/test-custom/articles/README.md)
+          echo "Content of README.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "## Documents"; then
+            echo "FAIL: expected README.md to contain '## Documents' section"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "article-one"; then
+            echo "FAIL: expected README.md to contain link to article-one.md"
+            exit 1
+          fi
+          echo "PASS: README.md contains expected content"

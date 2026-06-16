@@ -1,0 +1,64 @@
+name: Test nested folder structure creates category links
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create nested markdown folder structure
+        run: |
+          mkdir -p /tmp/test-nested/guides/beginner
+          mkdir -p /tmp/test-nested/guides/advanced
+          echo "# Intro" > /tmp/test-nested/guides/beginner/intro.md
+          echo "# Setup" > /tmp/test-nested/guides/beginner/setup.md
+          echo "# Deep Dive" > /tmp/test-nested/guides/advanced/deep-dive.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-nested
+
+      - name: Assert index.md was created in beginner subfolder
+        run: |
+          if [ ! -f "/tmp/test-nested/guides/beginner/index.md" ]; then
+            echo "FAIL: expected /tmp/test-nested/guides/beginner/index.md to be created"
+            exit 1
+          fi
+          echo "PASS: beginner/index.md was created"
+
+      - name: Assert index.md was created in advanced subfolder
+        run: |
+          if [ ! -f "/tmp/test-nested/guides/advanced/index.md" ]; then
+            echo "FAIL: expected /tmp/test-nested/guides/advanced/index.md to be created"
+            exit 1
+          fi
+          echo "PASS: advanced/index.md was created"
+
+      - name: Assert guides index.md was created with category links
+        run: |
+          if [ ! -f "/tmp/test-nested/guides/index.md" ]; then
+            echo "FAIL: expected /tmp/test-nested/guides/index.md to be created"
+            exit 1
+          fi
+          echo "PASS: guides/index.md was created"
+
+      - name: Assert guides index.md contains Categories section with subfolder links
+        run: |
+          CONTENT=$(cat /tmp/test-nested/guides/index.md)
+          echo "Content of guides/index.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "## Categories"; then
+            echo "FAIL: expected guides/index.md to contain '## Categories' section"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "beginner"; then
+            echo "FAIL: expected guides/index.md to contain link to beginner subfolder"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "advanced"; then
+            echo "FAIL: expected guides/index.md to contain link to advanced subfolder"
+            exit 1
+          fi
+          echo "PASS: guides/index.md contains expected category links"
