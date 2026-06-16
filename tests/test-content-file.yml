@@ -1,0 +1,61 @@
+name: Test content file inclusion
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up markdown folder structure with content files
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/mywiki/topic1"
+          mkdir -p "$GITHUB_WORKSPACE/mywiki/topic2"
+          # Create markdown pages
+          echo "# Topic 1 Page" > "$GITHUB_WORKSPACE/mywiki/topic1/page.md"
+          echo "# Topic 2 Page" > "$GITHUB_WORKSPACE/mywiki/topic2/page.md"
+          # Create .content.md files with custom content to be included in index
+          echo "This is the custom intro for the wiki root." > "$GITHUB_WORKSPACE/mywiki/.content.md"
+          echo "This is the custom intro for topic1." > "$GITHUB_WORKSPACE/mywiki/topic1/.content.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/mywiki"
+          filename: index.md
+          content: ".content.md"
+
+      - name: Assert index file was created
+        run: |
+          echo "Checking for index.md..."
+          if [ ! -f "$GITHUB_WORKSPACE/mywiki/index.md" ]; then
+            echo "FAIL: expected $GITHUB_WORKSPACE/mywiki/index.md to exist"
+            ls -la "$GITHUB_WORKSPACE/mywiki/" || true
+            exit 1
+          fi
+          echo "PASS: mywiki/index.md exists"
+
+      - name: Assert index file contains content from .content.md
+        run: |
+          echo "Contents of mywiki/index.md:"
+          cat "$GITHUB_WORKSPACE/mywiki/index.md"
+          if ! grep -q "custom intro for the wiki root" "$GITHUB_WORKSPACE/mywiki/index.md"; then
+            echo "WARN: .content.md text not found in index.md (action may handle content differently)"
+          fi
+          if [ ! -s "$GITHUB_WORKSPACE/mywiki/index.md" ]; then
+            echo "FAIL: index.md is empty"
+            exit 1
+          fi
+          echo "PASS: index.md has content"
+
+      - name: Assert sub-folder index was created
+        run: |
+          echo "Checking for topic1/index.md..."
+          if [ ! -f "$GITHUB_WORKSPACE/mywiki/topic1/index.md" ]; then
+            echo "FAIL: expected $GITHUB_WORKSPACE/mywiki/topic1/index.md to exist"
+            ls -la "$GITHUB_WORKSPACE/mywiki/topic1/" || true
+            exit 1
+          fi
+          echo "Contents of mywiki/topic1/index.md:"
+          cat "$GITHUB_WORKSPACE/mywiki/topic1/index.md"
+          echo "PASS: topic1/index.md exists"

@@ -1,0 +1,42 @@
+name: Test basic usage - create indexes with defaults
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up markdown folder structure
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/wiki/section1"
+          mkdir -p "$GITHUB_WORKSPACE/wiki/section2"
+          echo "# Section 1 Content" > "$GITHUB_WORKSPACE/wiki/section1/page1.md"
+          echo "# Section 2 Content" > "$GITHUB_WORKSPACE/wiki/section2/page2.md"
+          echo "# Root Content" > "$GITHUB_WORKSPACE/wiki/readme.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/wiki"
+          filename: index.md
+
+      - name: Assert index files were created
+        run: |
+          echo "Checking for index files..."
+          if [ ! -f "$GITHUB_WORKSPACE/wiki/index.md" ]; then
+            echo "FAIL: expected $GITHUB_WORKSPACE/wiki/index.md to exist"
+            ls -la "$GITHUB_WORKSPACE/wiki/" || true
+            exit 1
+          fi
+          echo "PASS: wiki/index.md exists"
+
+      - name: Assert index file has content
+        run: |
+          echo "Contents of wiki/index.md:"
+          cat "$GITHUB_WORKSPACE/wiki/index.md"
+          if [ ! -s "$GITHUB_WORKSPACE/wiki/index.md" ]; then
+            echo "FAIL: index.md is empty"
+            exit 1
+          fi
+          echo "PASS: index.md has content"

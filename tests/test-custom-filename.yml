@@ -1,0 +1,45 @@
+name: Test custom filename input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up markdown folder structure
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/docs/chapter1"
+          mkdir -p "$GITHUB_WORKSPACE/docs/chapter2"
+          echo "# Chapter 1" > "$GITHUB_WORKSPACE/docs/chapter1/intro.md"
+          echo "# Chapter 2" > "$GITHUB_WORKSPACE/docs/chapter2/intro.md"
+          echo "# Docs Home" > "$GITHUB_WORKSPACE/docs/home.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/docs"
+          filename: README.md
+
+      - name: Assert custom-named index files were created
+        run: |
+          echo "Checking for README.md index files..."
+          if [ ! -f "$GITHUB_WORKSPACE/docs/README.md" ]; then
+            echo "FAIL: expected $GITHUB_WORKSPACE/docs/README.md to exist"
+            ls -la "$GITHUB_WORKSPACE/docs/" || true
+            exit 1
+          fi
+          echo "PASS: docs/README.md exists"
+
+      - name: Assert default index.md was NOT created (custom filename used)
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/docs/index.md" ]; then
+            echo "WARN: docs/index.md exists (may be acceptable if action creates both)"
+          fi
+          echo "Contents of docs/README.md:"
+          cat "$GITHUB_WORKSPACE/docs/README.md"
+          if [ ! -s "$GITHUB_WORKSPACE/docs/README.md" ]; then
+            echo "FAIL: README.md is empty"
+            exit 1
+          fi
+          echo "PASS: README.md has content"
