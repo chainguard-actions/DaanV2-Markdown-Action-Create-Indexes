@@ -1,0 +1,40 @@
+name: Test includeExt flag - include file extensions in links
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki-ext
+          echo "# Document One" > /tmp/test-wiki-ext/document-one.md
+          echo "# Document Two" > /tmp/test-wiki-ext/document-two.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki-ext
+          filename: index.md
+          includeExt: "true"
+
+      - name: Assert index file was created
+        run: |
+          if [ ! -f "/tmp/test-wiki-ext/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert index contains links with .md extension
+        run: |
+          INDEX_CONTENT=$(cat /tmp/test-wiki-ext/index.md)
+          echo "Index content:"
+          echo "$INDEX_CONTENT"
+          if ! echo "$INDEX_CONTENT" | grep -q "\.md"; then
+            echo "FAIL: index.md does not contain links with .md extension when includeExt=true"
+            exit 1
+          fi
+          echo "PASS: index.md contains links with .md extension"

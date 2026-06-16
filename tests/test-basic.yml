@@ -1,0 +1,48 @@
+name: Test basic usage - create index from markdown files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki
+          echo "# Page One" > /tmp/test-wiki/page-one.md
+          echo "# Page Two" > /tmp/test-wiki/page-two.md
+          echo "# Page Three" > /tmp/test-wiki/page-three.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki
+          filename: index.md
+
+      - name: Assert index file was created
+        run: |
+          if [ ! -f "/tmp/test-wiki/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert index contains links to markdown files
+        run: |
+          INDEX_CONTENT=$(cat /tmp/test-wiki/index.md)
+          echo "Index content:"
+          echo "$INDEX_CONTENT"
+          if ! echo "$INDEX_CONTENT" | grep -q "page-one"; then
+            echo "FAIL: index.md does not contain link to page-one"
+            exit 1
+          fi
+          if ! echo "$INDEX_CONTENT" | grep -q "page-two"; then
+            echo "FAIL: index.md does not contain link to page-two"
+            exit 1
+          fi
+          if ! echo "$INDEX_CONTENT" | grep -q "page-three"; then
+            echo "FAIL: index.md does not contain link to page-three"
+            exit 1
+          fi
+          echo "PASS: index.md contains links to all pages"

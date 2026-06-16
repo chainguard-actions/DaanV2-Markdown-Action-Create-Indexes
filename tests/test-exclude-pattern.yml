@@ -1,0 +1,54 @@
+name: Test exclude pattern - exclude files from index
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test markdown folder structure
+        run: |
+          mkdir -p /tmp/test-wiki-exclude
+          echo "# Included Page" > /tmp/test-wiki-exclude/included-page.md
+          echo "# Draft Page" > /tmp/test-wiki-exclude/draft-page.md
+          echo "# Another Draft" > /tmp/test-wiki-exclude/draft-another.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/test-wiki-exclude
+          filename: index.md
+          exclude: "draft*"
+
+      - name: Assert index file was created
+        run: |
+          if [ ! -f "/tmp/test-wiki-exclude/index.md" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert index contains included page
+        run: |
+          INDEX_CONTENT=$(cat /tmp/test-wiki-exclude/index.md)
+          echo "Index content:"
+          echo "$INDEX_CONTENT"
+          if ! echo "$INDEX_CONTENT" | grep -q "included-page"; then
+            echo "FAIL: index.md does not contain link to included-page"
+            exit 1
+          fi
+          echo "PASS: included-page is in the index"
+
+      - name: Assert index does NOT contain excluded draft pages
+        run: |
+          INDEX_CONTENT=$(cat /tmp/test-wiki-exclude/index.md)
+          if echo "$INDEX_CONTENT" | grep -q "draft-page"; then
+            echo "FAIL: index.md contains draft-page which should be excluded"
+            exit 1
+          fi
+          if echo "$INDEX_CONTENT" | grep -q "draft-another"; then
+            echo "FAIL: index.md contains draft-another which should be excluded"
+            exit 1
+          fi
+          echo "PASS: draft pages are excluded from the index"

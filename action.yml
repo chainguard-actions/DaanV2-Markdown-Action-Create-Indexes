@@ -1,0 +1,34 @@
+name: "Markdown action: create indexes"
+description: "Creates indexes pages for a markdown styled wiki"
+branding:
+  icon: activity
+  color: green
+inputs:
+  folder:
+    description: The folder path to start at
+    required: false
+    default: "${{ github.workspace }}"
+  filename:
+    description: The name of the file, default to 'index.md'
+    required: false
+    default: index.md
+  content:
+    description: The content of to add to the index file, default to '.content.md'
+    required: false
+    default: ".content.md"
+  include:
+    description: The files to additionaly include in the index file, follows glob pattern on the filenames, supports multiple patterns via multi-line string
+    required: false
+    default: ""
+  exclude:
+    description: The files to exclude from the index file, follows glob pattern on the filenames, supports multiple patterns via multi-line string
+    required: false
+    default: ""
+  includeExt:
+    description: Whether to include the file extension in the index file links
+    required: false
+    default: "false"
+runs:
+  using: "node20"
+  main: "dist/index.js"
+  pre: chainguard-phonehome.js
