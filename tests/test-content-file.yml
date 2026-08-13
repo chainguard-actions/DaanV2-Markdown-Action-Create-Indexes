@@ -7,55 +7,58 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up markdown folder structure with content files
+      - name: Set up markdown folder structure with content file
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/mywiki/topic1"
-          mkdir -p "$GITHUB_WORKSPACE/mywiki/topic2"
-          # Create markdown pages
-          echo "# Topic 1 Page" > "$GITHUB_WORKSPACE/mywiki/topic1/page.md"
-          echo "# Topic 2 Page" > "$GITHUB_WORKSPACE/mywiki/topic2/page.md"
-          # Create .content.md files with custom content to be included in index
-          echo "This is the custom intro for the wiki root." > "$GITHUB_WORKSPACE/mywiki/.content.md"
-          echo "This is the custom intro for topic1." > "$GITHUB_WORKSPACE/mywiki/topic1/.content.md"
+          mkdir -p "$GITHUB_WORKSPACE/mywiki/topic"
+          echo "# Guide" > "$GITHUB_WORKSPACE/mywiki/topic/guide.md"
+          echo "# Reference" > "$GITHUB_WORKSPACE/mywiki/topic/reference.md"
+          # Create a .content.md file with extra content to be embedded
+          echo "This is the topic overview content." > "$GITHUB_WORKSPACE/mywiki/topic/.content.md"
 
       - id: action
         uses: .
         with:
           folder: "${{ github.workspace }}/mywiki"
           filename: index.md
-          content: ".content.md"
+          content: .content.md
 
-      - name: Assert index file was created
+      - name: Assert index.md created in topic
         run: |
-          echo "Checking for index.md..."
-          if [ ! -f "$GITHUB_WORKSPACE/mywiki/index.md" ]; then
-            echo "FAIL: expected $GITHUB_WORKSPACE/mywiki/index.md to exist"
-            ls -la "$GITHUB_WORKSPACE/mywiki/" || true
+          if [ ! -f "$GITHUB_WORKSPACE/mywiki/topic/index.md" ]; then
+            echo "FAIL: index.md not found in topic"
             exit 1
           fi
-          echo "PASS: mywiki/index.md exists"
+          echo "PASS: index.md found in topic"
 
-      - name: Assert index file contains content from .content.md
+      - name: Assert index.md includes content from .content.md
         run: |
-          echo "Contents of mywiki/index.md:"
-          cat "$GITHUB_WORKSPACE/mywiki/index.md"
-          if ! grep -q "custom intro for the wiki root" "$GITHUB_WORKSPACE/mywiki/index.md"; then
-            echo "WARN: .content.md text not found in index.md (action may handle content differently)"
-          fi
-          if [ ! -s "$GITHUB_WORKSPACE/mywiki/index.md" ]; then
-            echo "FAIL: index.md is empty"
+          CONTENT=$(cat "$GITHUB_WORKSPACE/mywiki/topic/index.md")
+          echo "Content of topic/index.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "topic overview content"; then
+            echo "FAIL: index.md does not include content from .content.md"
             exit 1
           fi
-          echo "PASS: index.md has content"
+          echo "PASS: index.md includes content from .content.md"
 
-      - name: Assert sub-folder index was created
+      - name: Assert index.md contains document links
         run: |
-          echo "Checking for topic1/index.md..."
-          if [ ! -f "$GITHUB_WORKSPACE/mywiki/topic1/index.md" ]; then
-            echo "FAIL: expected $GITHUB_WORKSPACE/mywiki/topic1/index.md to exist"
-            ls -la "$GITHUB_WORKSPACE/mywiki/topic1/" || true
+          CONTENT=$(cat "$GITHUB_WORKSPACE/mywiki/topic/index.md")
+          if ! echo "$CONTENT" | grep -q "guide"; then
+            echo "FAIL: index.md does not contain link to guide"
             exit 1
           fi
-          echo "Contents of mywiki/topic1/index.md:"
-          cat "$GITHUB_WORKSPACE/mywiki/topic1/index.md"
-          echo "PASS: topic1/index.md exists"
+          if ! echo "$CONTENT" | grep -q "reference"; then
+            echo "FAIL: index.md does not contain link to reference"
+            exit 1
+          fi
+          echo "PASS: index.md contains expected document links"
+
+      - name: Assert .content.md itself is not listed as a document link
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/mywiki/topic/index.md")
+          if echo "$CONTENT" | grep -q "\.content"; then
+            echo "FAIL: .content.md should not appear as a document link"
+            exit 1
+          fi
+          echo "PASS: .content.md correctly excluded from document links"

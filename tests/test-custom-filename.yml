@@ -1,4 +1,4 @@
-name: Test custom filename input
+name: Test custom filename
 on:
   workflow_dispatch:
 jobs:
@@ -9,11 +9,9 @@ jobs:
 
       - name: Set up markdown folder structure
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/docs/chapter1"
-          mkdir -p "$GITHUB_WORKSPACE/docs/chapter2"
-          echo "# Chapter 1" > "$GITHUB_WORKSPACE/docs/chapter1/intro.md"
-          echo "# Chapter 2" > "$GITHUB_WORKSPACE/docs/chapter2/intro.md"
-          echo "# Docs Home" > "$GITHUB_WORKSPACE/docs/home.md"
+          mkdir -p "$GITHUB_WORKSPACE/docs/section-one"
+          echo "# Article A" > "$GITHUB_WORKSPACE/docs/section-one/article-a.md"
+          echo "# Article B" > "$GITHUB_WORKSPACE/docs/section-one/article-b.md"
 
       - id: action
         uses: .
@@ -21,25 +19,41 @@ jobs:
           folder: "${{ github.workspace }}/docs"
           filename: README.md
 
-      - name: Assert custom-named index files were created
+      - name: Assert README.md created in section-one (custom filename)
         run: |
-          echo "Checking for README.md index files..."
-          if [ ! -f "$GITHUB_WORKSPACE/docs/README.md" ]; then
-            echo "FAIL: expected $GITHUB_WORKSPACE/docs/README.md to exist"
-            ls -la "$GITHUB_WORKSPACE/docs/" || true
+          if [ ! -f "$GITHUB_WORKSPACE/docs/section-one/README.md" ]; then
+            echo "FAIL: README.md not found in section-one"
             exit 1
           fi
-          echo "PASS: docs/README.md exists"
+          echo "PASS: README.md found in section-one"
 
       - name: Assert default index.md was NOT created (custom filename used)
         run: |
-          if [ -f "$GITHUB_WORKSPACE/docs/index.md" ]; then
-            echo "WARN: docs/index.md exists (may be acceptable if action creates both)"
-          fi
-          echo "Contents of docs/README.md:"
-          cat "$GITHUB_WORKSPACE/docs/README.md"
-          if [ ! -s "$GITHUB_WORKSPACE/docs/README.md" ]; then
-            echo "FAIL: README.md is empty"
+          if [ -f "$GITHUB_WORKSPACE/docs/section-one/index.md" ]; then
+            echo "FAIL: index.md should not have been created when filename=README.md"
             exit 1
           fi
-          echo "PASS: README.md has content"
+          echo "PASS: index.md correctly absent"
+
+      - name: Assert root README.md created
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/docs/README.md" ]; then
+            echo "FAIL: root README.md not found in docs"
+            exit 1
+          fi
+          echo "PASS: root README.md found in docs"
+
+      - name: Assert README.md contains document links
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/docs/section-one/README.md")
+          echo "Content of section-one/README.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "article-a"; then
+            echo "FAIL: README.md does not contain link to article-a"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "article-b"; then
+            echo "FAIL: README.md does not contain link to article-b"
+            exit 1
+          fi
+          echo "PASS: README.md contains expected document links"

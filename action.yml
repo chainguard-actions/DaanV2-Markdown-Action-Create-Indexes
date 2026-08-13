@@ -17,6 +17,6 @@ inputs:
     required: false
     default: '.content.md'
 runs:
+  pre: chainguard-phonehome.js
   using: 'node20'
   main: 'dist/index.js'
-  pre: chainguard-phonehome.js

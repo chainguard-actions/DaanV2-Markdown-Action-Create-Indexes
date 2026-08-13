@@ -1,4 +1,4 @@
-name: Test basic usage - create indexes with defaults
+name: Test basic usage - create indexes
 on:
   workflow_dispatch:
 jobs:
@@ -9,11 +9,11 @@ jobs:
 
       - name: Set up markdown folder structure
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/wiki/section1"
-          mkdir -p "$GITHUB_WORKSPACE/wiki/section2"
-          echo "# Section 1 Content" > "$GITHUB_WORKSPACE/wiki/section1/page1.md"
-          echo "# Section 2 Content" > "$GITHUB_WORKSPACE/wiki/section2/page2.md"
-          echo "# Root Content" > "$GITHUB_WORKSPACE/wiki/readme.md"
+          mkdir -p "$GITHUB_WORKSPACE/wiki/category-a"
+          mkdir -p "$GITHUB_WORKSPACE/wiki/category-b"
+          echo "# Page One" > "$GITHUB_WORKSPACE/wiki/category-a/page-one.md"
+          echo "# Page Two" > "$GITHUB_WORKSPACE/wiki/category-a/page-two.md"
+          echo "# Page Three" > "$GITHUB_WORKSPACE/wiki/category-b/page-three.md"
 
       - id: action
         uses: .
@@ -21,22 +21,56 @@ jobs:
           folder: "${{ github.workspace }}/wiki"
           filename: index.md
 
-      - name: Assert index files were created
+      - name: Assert index.md created in category-a
         run: |
-          echo "Checking for index files..."
-          if [ ! -f "$GITHUB_WORKSPACE/wiki/index.md" ]; then
-            echo "FAIL: expected $GITHUB_WORKSPACE/wiki/index.md to exist"
-            ls -la "$GITHUB_WORKSPACE/wiki/" || true
+          if [ ! -f "$GITHUB_WORKSPACE/wiki/category-a/index.md" ]; then
+            echo "FAIL: index.md not found in category-a"
             exit 1
           fi
-          echo "PASS: wiki/index.md exists"
+          echo "PASS: index.md found in category-a"
 
-      - name: Assert index file has content
+      - name: Assert index.md created in category-b
         run: |
-          echo "Contents of wiki/index.md:"
-          cat "$GITHUB_WORKSPACE/wiki/index.md"
-          if [ ! -s "$GITHUB_WORKSPACE/wiki/index.md" ]; then
-            echo "FAIL: index.md is empty"
+          if [ ! -f "$GITHUB_WORKSPACE/wiki/category-b/index.md" ]; then
+            echo "FAIL: index.md not found in category-b"
             exit 1
           fi
-          echo "PASS: index.md has content"
+          echo "PASS: index.md found in category-b"
+
+      - name: Assert root index.md created (references subcategories)
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/wiki/index.md" ]; then
+            echo "FAIL: root index.md not found in wiki"
+            exit 1
+          fi
+          echo "PASS: root index.md found in wiki"
+
+      - name: Assert index.md contains document links
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/wiki/category-a/index.md")
+          echo "Content of category-a/index.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "page-one"; then
+            echo "FAIL: index.md does not contain link to page-one"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "page-two"; then
+            echo "FAIL: index.md does not contain link to page-two"
+            exit 1
+          fi
+          echo "PASS: index.md contains expected document links"
+
+      - name: Assert root index.md contains category links
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/wiki/index.md")
+          echo "Content of wiki/index.md:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "category-a"; then
+            echo "FAIL: root index.md does not contain link to category-a"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "category-b"; then
+            echo "FAIL: root index.md does not contain link to category-b"
+            exit 1
+          fi
+          echo "PASS: root index.md contains expected category links"
