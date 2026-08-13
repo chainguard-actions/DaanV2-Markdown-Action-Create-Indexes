@@ -1,53 +1,64 @@
-name: Test content file inclusion
+name: Test content file - .content.md included in index
 on:
   workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test markdown folder with content file
+      - name: Set up test folder with markdown files and content file
         run: |
-          mkdir -p /tmp/test-wiki-content
-          echo "# Page A" > /tmp/test-wiki-content/page-a.md
-          echo "# Page B" > /tmp/test-wiki-content/page-b.md
-          echo "This is the custom header content for the index." > /tmp/test-wiki-content/.content.md
+          mkdir -p /tmp/wiki-content-test
+          echo "# Article One" > /tmp/wiki-content-test/article-one.md
+          echo "# Article Two" > /tmp/wiki-content-test/article-two.md
+          echo "This is the custom intro content for the wiki section." > /tmp/wiki-content-test/.content.md
 
       - id: action
         uses: .
         with:
-          folder: /tmp/test-wiki-content
+          folder: /tmp/wiki-content-test
           filename: index.md
           content: .content.md
 
-      - name: Assert index file was created
+      - name: Assert index.md was created
         run: |
-          echo "Checking for index.md in /tmp/test-wiki-content"
-          if [ ! -f "/tmp/test-wiki-content/index.md" ]; then
+          if [ ! -f /tmp/wiki-content-test/index.md ]; then
             echo "FAIL: index.md was not created"
             exit 1
           fi
           echo "PASS: index.md exists"
 
-      - name: Assert content file text is included in index
+      - name: Assert content from .content.md is in index
         run: |
-          echo "Contents of index.md:"
-          cat /tmp/test-wiki-content/index.md
-          if ! grep -q "custom header content" /tmp/test-wiki-content/index.md; then
-            echo "FAIL: index.md does not contain the .content.md text"
+          CONTENT=$(cat /tmp/wiki-content-test/index.md)
+          echo "index.md content:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "custom intro content"; then
+            echo "FAIL: index.md does not contain content from .content.md"
             exit 1
           fi
-          echo "PASS: content file text is included in index"
+          echo "PASS: .content.md content is included in index"
 
-      - name: Assert markdown pages are linked in index
+      - name: Assert .content.md itself is not listed as a document
         run: |
-          if ! grep -q "page-a" /tmp/test-wiki-content/index.md; then
-            echo "FAIL: index.md does not reference page-a.md"
+          CONTENT=$(cat /tmp/wiki-content-test/index.md)
+          if echo "$CONTENT" | grep -q "\.content\.md"; then
+            echo "FAIL: index.md lists .content.md as a document (it should be excluded)"
             exit 1
           fi
-          if ! grep -q "page-b" /tmp/test-wiki-content/index.md; then
-            echo "FAIL: index.md does not reference page-b.md"
+          echo "PASS: .content.md is not listed as a document"
+
+      - name: Assert article files are listed
+        run: |
+          CONTENT=$(cat /tmp/wiki-content-test/index.md)
+          if ! echo "$CONTENT" | grep -q "article-one"; then
+            echo "FAIL: index.md does not contain article-one.md"
             exit 1
           fi
-          echo "PASS: markdown pages are linked in index"
+          if ! echo "$CONTENT" | grep -q "article-two"; then
+            echo "FAIL: index.md does not contain article-two.md"
+            exit 1
+          fi
+          echo "PASS: article files are listed in index"

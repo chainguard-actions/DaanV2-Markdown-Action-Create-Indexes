@@ -1,0 +1,78 @@
+name: Test subfolders - categories in index
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up test folder with subfolders
+        run: |
+          mkdir -p /tmp/wiki-subfolder-test/guides
+          mkdir -p /tmp/wiki-subfolder-test/reference
+          echo "# Root Page" > /tmp/wiki-subfolder-test/root-page.md
+          echo "# Quick Start" > /tmp/wiki-subfolder-test/guides/quick-start.md
+          echo "# Advanced Guide" > /tmp/wiki-subfolder-test/guides/advanced-guide.md
+          echo "# API Docs" > /tmp/wiki-subfolder-test/reference/api-docs.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/wiki-subfolder-test
+          filename: index.md
+
+      - name: Assert root index.md was created
+        run: |
+          if [ ! -f /tmp/wiki-subfolder-test/index.md ]; then
+            echo "FAIL: root index.md was not created"
+            exit 1
+          fi
+          echo "PASS: root index.md exists"
+
+      - name: Assert subfolder index files were created
+        run: |
+          if [ ! -f /tmp/wiki-subfolder-test/guides/index.md ]; then
+            echo "FAIL: guides/index.md was not created"
+            exit 1
+          fi
+          if [ ! -f /tmp/wiki-subfolder-test/reference/index.md ]; then
+            echo "FAIL: reference/index.md was not created"
+            exit 1
+          fi
+          echo "PASS: subfolder index files exist"
+
+      - name: Assert root index has Categories section with subfolders
+        run: |
+          CONTENT=$(cat /tmp/wiki-subfolder-test/index.md)
+          echo "root index.md content:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "## Categories"; then
+            echo "FAIL: root index.md does not have a Categories section"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "guides"; then
+            echo "FAIL: root index.md does not reference guides subfolder"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "reference"; then
+            echo "FAIL: root index.md does not reference reference subfolder"
+            exit 1
+          fi
+          echo "PASS: root index.md has Categories section with subfolder links"
+
+      - name: Assert guides index contains its documents
+        run: |
+          CONTENT=$(cat /tmp/wiki-subfolder-test/guides/index.md)
+          echo "guides/index.md content:"
+          echo "$CONTENT"
+          if ! echo "$CONTENT" | grep -q "quick-start"; then
+            echo "FAIL: guides/index.md does not contain quick-start.md"
+            exit 1
+          fi
+          if ! echo "$CONTENT" | grep -q "advanced-guide"; then
+            echo "FAIL: guides/index.md does not contain advanced-guide.md"
+            exit 1
+          fi
+          echo "PASS: guides/index.md contains its documents"

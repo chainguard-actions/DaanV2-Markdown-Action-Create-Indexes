@@ -1,0 +1,57 @@
+name: Test exclude - excluded files not in index
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up test folder with markdown files
+        run: |
+          mkdir -p /tmp/wiki-exclude-test
+          echo "# Public Page" > /tmp/wiki-exclude-test/public-page.md
+          echo "# Draft Page" > /tmp/wiki-exclude-test/draft-page.md
+          echo "# Internal Notes" > /tmp/wiki-exclude-test/internal-notes.md
+
+      - id: action
+        uses: .
+        with:
+          folder: /tmp/wiki-exclude-test
+          filename: index.md
+          exclude: |
+            draft*
+            internal*
+
+      - name: Assert index.md was created
+        run: |
+          if [ ! -f /tmp/wiki-exclude-test/index.md ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert excluded files are not in index
+        run: |
+          CONTENT=$(cat /tmp/wiki-exclude-test/index.md)
+          echo "index.md content:"
+          echo "$CONTENT"
+          if echo "$CONTENT" | grep -q "draft-page"; then
+            echo "FAIL: index.md contains excluded file draft-page.md"
+            exit 1
+          fi
+          if echo "$CONTENT" | grep -q "internal-notes"; then
+            echo "FAIL: index.md contains excluded file internal-notes.md"
+            exit 1
+          fi
+          echo "PASS: excluded files are not in index"
+
+      - name: Assert included file is in index
+        run: |
+          CONTENT=$(cat /tmp/wiki-exclude-test/index.md)
+          if ! echo "$CONTENT" | grep -q "public-page"; then
+            echo "FAIL: index.md does not contain public-page.md which should be included"
+            exit 1
+          fi
+          echo "PASS: public-page.md is in index"
