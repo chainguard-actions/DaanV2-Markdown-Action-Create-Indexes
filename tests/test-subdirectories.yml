@@ -1,0 +1,74 @@
+name: Test recursive subdirectory index creation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up test wiki folder with subdirectories
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/wiki-sub/chapter-one"
+          mkdir -p "$GITHUB_WORKSPACE/wiki-sub/chapter-two"
+          echo "# Root Doc" > "$GITHUB_WORKSPACE/wiki-sub/root-doc.md"
+          echo "# Chapter One Page" > "$GITHUB_WORKSPACE/wiki-sub/chapter-one/page.md"
+          echo "# Chapter Two Page" > "$GITHUB_WORKSPACE/wiki-sub/chapter-two/page.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/wiki-sub"
+          filename: index.md
+
+      - name: Assert root index.md was created
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-sub/index.md"
+          if [ ! -f "$INDEX" ]; then
+            echo "FAIL: root index.md was not created"
+            exit 1
+          fi
+          echo "PASS: root index.md exists"
+
+      - name: Assert subdirectory indexes were created
+        run: |
+          CH1="$GITHUB_WORKSPACE/wiki-sub/chapter-one/index.md"
+          CH2="$GITHUB_WORKSPACE/wiki-sub/chapter-two/index.md"
+          if [ ! -f "$CH1" ]; then
+            echo "FAIL: chapter-one/index.md was not created"
+            exit 1
+          fi
+          if [ ! -f "$CH2" ]; then
+            echo "FAIL: chapter-two/index.md was not created"
+            exit 1
+          fi
+          echo "PASS: subdirectory indexes exist"
+
+      - name: Assert root index.md has Categories section with subdirectory links
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-sub/index.md"
+          echo "--- root index.md contents ---"
+          cat "$INDEX"
+          echo "--- end ---"
+          if ! grep -q "## Categories" "$INDEX"; then
+            echo "FAIL: root index.md does not have a Categories section"
+            exit 1
+          fi
+          if ! grep -q "chapter-one" "$INDEX"; then
+            echo "FAIL: root index.md does not link to chapter-one"
+            exit 1
+          fi
+          if ! grep -q "chapter-two" "$INDEX"; then
+            echo "FAIL: root index.md does not link to chapter-two"
+            exit 1
+          fi
+          echo "PASS: root index.md has Categories section with subdirectory links"
+
+      - name: Assert root index.md also links to root-level documents
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-sub/index.md"
+          if ! grep -q "root-doc" "$INDEX"; then
+            echo "FAIL: root index.md does not link to root-doc.md"
+            exit 1
+          fi
+          echo "PASS: root index.md links to root-level documents"

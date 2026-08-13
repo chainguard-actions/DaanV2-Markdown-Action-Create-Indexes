@@ -1,0 +1,55 @@
+name: Test include patterns
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up test wiki folder with mixed file types
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/wiki-include"
+          echo "# Markdown Doc" > "$GITHUB_WORKSPACE/wiki-include/doc.md"
+          echo "# Another Markdown" > "$GITHUB_WORKSPACE/wiki-include/another.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/wiki-include"
+          filename: index.md
+
+      - name: Assert index.md was created
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-include/index.md"
+          if [ ! -f "$INDEX" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert markdown files are included in the index
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-include/index.md"
+          echo "--- index.md contents ---"
+          cat "$INDEX"
+          echo "--- end ---"
+          if ! grep -q "doc" "$INDEX"; then
+            echo "FAIL: doc.md should be included in the index"
+            exit 1
+          fi
+          if ! grep -q "another" "$INDEX"; then
+            echo "FAIL: another.md should be included in the index"
+            exit 1
+          fi
+          echo "PASS: markdown files are included in the index"
+
+      - name: Assert index.md itself is not linked in the index
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-include/index.md"
+          # The index file should not link to itself
+          if grep -q "\[index\]" "$INDEX"; then
+            echo "FAIL: index.md should not link to itself"
+            exit 1
+          fi
+          echo "PASS: index.md does not link to itself"

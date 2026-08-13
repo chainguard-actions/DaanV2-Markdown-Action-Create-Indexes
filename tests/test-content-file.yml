@@ -7,45 +7,46 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test markdown folder with content file
+      - name: Set up test wiki folder with content file
         run: |
-          mkdir -p /tmp/wiki-content/docs
-          echo "# Welcome to the Wiki" > /tmp/wiki-content/docs/.content.md
-          echo "This is the introduction text for the index." >> /tmp/wiki-content/docs/.content.md
-          echo "# Page Alpha" > /tmp/wiki-content/docs/page-alpha.md
-          echo "# Page Beta" > /tmp/wiki-content/docs/page-beta.md
+          mkdir -p "$GITHUB_WORKSPACE/wiki-content"
+          echo "This is the section description." > "$GITHUB_WORKSPACE/wiki-content/.content.md"
+          echo "# Article One" > "$GITHUB_WORKSPACE/wiki-content/article-one.md"
+          echo "# Article Two" > "$GITHUB_WORKSPACE/wiki-content/article-two.md"
 
       - id: action
         uses: .
         with:
-          folder: /tmp/wiki-content/docs
-
-      - name: Show generated index.md
-        run: |
-          echo "--- index.md contents ---"
-          cat /tmp/wiki-content/docs/index.md
-          echo "--- end ---"
+          folder: "${{ github.workspace }}/wiki-content"
+          filename: index.md
+          content: .content.md
 
       - name: Assert index.md was created
         run: |
-          if [ ! -f "/tmp/wiki-content/docs/index.md" ]; then
+          INDEX="$GITHUB_WORKSPACE/wiki-content/index.md"
+          if [ ! -f "$INDEX" ]; then
             echo "FAIL: index.md was not created"
             exit 1
           fi
           echo "PASS: index.md exists"
 
-      - name: Assert content from .content.md is included
+      - name: Assert index.md contains content from .content.md
         run: |
-          if ! grep -q "Welcome to the Wiki" /tmp/wiki-content/docs/index.md; then
-            echo "FAIL: content from .content.md should be included in index.md"
+          INDEX="$GITHUB_WORKSPACE/wiki-content/index.md"
+          echo "--- index.md contents ---"
+          cat "$INDEX"
+          echo "--- end ---"
+          if ! grep -q "This is the section description" "$INDEX"; then
+            echo "FAIL: index.md does not contain content from .content.md"
             exit 1
           fi
-          echo "PASS: .content.md content is included in index.md"
+          echo "PASS: index.md contains content from .content.md"
 
-      - name: Assert page links are present
+      - name: Assert .content.md itself is not linked in the index
         run: |
-          if ! grep -q "page-alpha" /tmp/wiki-content/docs/index.md; then
-            echo "FAIL: page-alpha.md should be referenced in index.md"
+          INDEX="$GITHUB_WORKSPACE/wiki-content/index.md"
+          if grep -q "\.content\.md" "$INDEX"; then
+            echo "FAIL: .content.md should be excluded from document links"
             exit 1
           fi
-          echo "PASS: page links are present in index.md"
+          echo "PASS: .content.md is not linked in the index"

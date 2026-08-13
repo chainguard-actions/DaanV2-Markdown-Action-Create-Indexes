@@ -1,0 +1,58 @@
+name: Test exclude patterns
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up test wiki folder with files to exclude
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/wiki-exclude"
+          echo "# Public Doc" > "$GITHUB_WORKSPACE/wiki-exclude/public-doc.md"
+          echo "# Draft Doc" > "$GITHUB_WORKSPACE/wiki-exclude/draft-doc.md"
+          echo "# Internal Doc" > "$GITHUB_WORKSPACE/wiki-exclude/internal-doc.md"
+
+      - id: action
+        uses: .
+        with:
+          folder: "${{ github.workspace }}/wiki-exclude"
+          filename: index.md
+          exclude: |
+            draft-doc.md
+            internal-doc.md
+
+      - name: Assert index.md was created
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-exclude/index.md"
+          if [ ! -f "$INDEX" ]; then
+            echo "FAIL: index.md was not created"
+            exit 1
+          fi
+          echo "PASS: index.md exists"
+
+      - name: Assert excluded files are not in the index
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-exclude/index.md"
+          echo "--- index.md contents ---"
+          cat "$INDEX"
+          echo "--- end ---"
+          if grep -q "draft-doc" "$INDEX"; then
+            echo "FAIL: draft-doc.md should be excluded from the index"
+            exit 1
+          fi
+          if grep -q "internal-doc" "$INDEX"; then
+            echo "FAIL: internal-doc.md should be excluded from the index"
+            exit 1
+          fi
+          echo "PASS: excluded files are not in the index"
+
+      - name: Assert non-excluded file is in the index
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-exclude/index.md"
+          if ! grep -q "public-doc" "$INDEX"; then
+            echo "FAIL: public-doc.md should be included in the index"
+            exit 1
+          fi
+          echo "PASS: public-doc.md is included in the index"

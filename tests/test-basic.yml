@@ -1,4 +1,4 @@
-name: Test basic usage - create index with defaults
+name: Test basic index creation
 on:
   workflow_dispatch:
 jobs:
@@ -7,33 +7,48 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test markdown folder structure
+      - name: Set up test wiki folder
         run: |
-          mkdir -p /tmp/wiki/docs
-          echo "# Hello World" > /tmp/wiki/docs/hello.md
-          echo "# Another Page" > /tmp/wiki/docs/another.md
-          echo "# Sub Page" > /tmp/wiki/docs/sub.md
+          mkdir -p "$GITHUB_WORKSPACE/wiki-test"
+          echo "# Hello World" > "$GITHUB_WORKSPACE/wiki-test/hello.md"
+          echo "# Goodbye World" > "$GITHUB_WORKSPACE/wiki-test/goodbye.md"
 
       - id: action
         uses: .
         with:
-          folder: /tmp/wiki/docs
+          folder: "${{ github.workspace }}/wiki-test"
+          filename: index.md
 
       - name: Assert index.md was created
         run: |
-          if [ ! -f "/tmp/wiki/docs/index.md" ]; then
-            echo "FAIL: index.md was not created in /tmp/wiki/docs"
+          INDEX="$GITHUB_WORKSPACE/wiki-test/index.md"
+          if [ ! -f "$INDEX" ]; then
+            echo "FAIL: index.md was not created"
             exit 1
           fi
           echo "PASS: index.md exists"
 
-      - name: Assert index.md contains links to markdown files
+      - name: Assert index.md contains document links
         run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-test/index.md"
           echo "--- index.md contents ---"
-          cat /tmp/wiki/docs/index.md
+          cat "$INDEX"
           echo "--- end ---"
-          if ! grep -q "hello" /tmp/wiki/docs/index.md; then
-            echo "FAIL: index.md does not reference hello.md"
+          if ! grep -q "hello" "$INDEX"; then
+            echo "FAIL: index.md does not contain link to hello.md"
             exit 1
           fi
-          echo "PASS: index.md contains expected links"
+          if ! grep -q "goodbye" "$INDEX"; then
+            echo "FAIL: index.md does not contain link to goodbye.md"
+            exit 1
+          fi
+          echo "PASS: index.md contains expected document links"
+
+      - name: Assert index.md has Documents section
+        run: |
+          INDEX="$GITHUB_WORKSPACE/wiki-test/index.md"
+          if ! grep -q "## Documents" "$INDEX"; then
+            echo "FAIL: index.md does not have a Documents section"
+            exit 1
+          fi
+          echo "PASS: index.md has Documents section"

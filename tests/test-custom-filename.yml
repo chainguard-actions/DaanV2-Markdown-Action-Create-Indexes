@@ -1,4 +1,4 @@
-name: Test custom filename input
+name: Test custom index filename
 on:
   workflow_dispatch:
 jobs:
@@ -7,41 +7,44 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test markdown folder structure
+      - name: Set up test wiki folder
         run: |
-          mkdir -p /tmp/wiki-custom/docs
-          echo "# Page One" > /tmp/wiki-custom/docs/page-one.md
-          echo "# Page Two" > /tmp/wiki-custom/docs/page-two.md
+          mkdir -p "$GITHUB_WORKSPACE/wiki-custom"
+          echo "# Page One" > "$GITHUB_WORKSPACE/wiki-custom/page-one.md"
+          echo "# Page Two" > "$GITHUB_WORKSPACE/wiki-custom/page-two.md"
 
       - id: action
         uses: .
         with:
-          folder: /tmp/wiki-custom/docs
+          folder: "${{ github.workspace }}/wiki-custom"
           filename: README.md
 
       - name: Assert README.md was created (not index.md)
         run: |
-          if [ ! -f "/tmp/wiki-custom/docs/README.md" ]; then
+          README="$GITHUB_WORKSPACE/wiki-custom/README.md"
+          INDEX="$GITHUB_WORKSPACE/wiki-custom/index.md"
+          if [ ! -f "$README" ]; then
             echo "FAIL: README.md was not created"
             exit 1
           fi
-          echo "PASS: README.md exists"
-
-      - name: Assert default index.md was NOT created
-        run: |
-          if [ -f "/tmp/wiki-custom/docs/index.md" ]; then
+          if [ -f "$INDEX" ]; then
             echo "FAIL: index.md should not have been created when filename=README.md"
             exit 1
           fi
-          echo "PASS: index.md was not created (correct)"
+          echo "PASS: README.md created and index.md not created"
 
-      - name: Assert README.md contains links to markdown files
+      - name: Assert README.md contains document links
         run: |
+          README="$GITHUB_WORKSPACE/wiki-custom/README.md"
           echo "--- README.md contents ---"
-          cat /tmp/wiki-custom/docs/README.md
+          cat "$README"
           echo "--- end ---"
-          if ! grep -q "page" /tmp/wiki-custom/docs/README.md; then
-            echo "FAIL: README.md does not reference page files"
+          if ! grep -q "page-one" "$README"; then
+            echo "FAIL: README.md does not contain link to page-one.md"
             exit 1
           fi
-          echo "PASS: README.md contains expected content"
+          if ! grep -q "page-two" "$README"; then
+            echo "FAIL: README.md does not contain link to page-two.md"
+            exit 1
+          fi
+          echo "PASS: README.md contains expected document links"
